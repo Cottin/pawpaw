@@ -1,4 +1,4 @@
-{always, evolve, into, isNil, join, keys, last, map, omit, prepend, range} = require 'ramda' #auto_require:ramda
+{always, evolve, into, isNil, join, keys, last, map, omit, prepend, range, type} = require 'ramda' #auto_require:ramda
 {cc, isThenable} = require 'ramda-extras'
 
 utils = require './utils'
@@ -66,9 +66,14 @@ class Pawpaw
 				newContext = evolve {stack: prepend(newQuery)}, context
 				@_exec newQuery, newContext, playMode
 
-		args = omit [key], query
 		try
-			gen = @tree[key][cmd].call yieldObject, args
+			if type(cmd) == 'String'
+				args = omit [key], query
+				gen = @tree[key][cmd].call yieldObject, args
+			else # function as key
+				args = cmd
+				gen = @tree[key].call yieldObject, args
+
 		catch err
 			console.error "exec error", context
 			throw new Error "exec error: " + err

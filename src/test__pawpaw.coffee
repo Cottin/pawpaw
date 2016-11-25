@@ -43,6 +43,13 @@ describe 'pawpaw', ->
 			tree.logLevel = 999
 			eq 14, tree.exec {n: 'n1', a: 2}
 
+		it 'function as key', ->
+			tree = new Pawpaw
+				k: -> ({a, b}) -> a + b
+
+			tree.logLevel = 999
+			eq 3, tree.exec {k: {a: 1, b: 2}}
+
 		it 'should print stack on error (and throw)', ->
 			tree = new Pawpaw
 				k:
