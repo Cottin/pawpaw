@@ -1,5 +1,5 @@
-A function tree that understands generator functions and lets you use simple javascript objects as execution queries.
 
+![](https://github.com/Cottin/pawpaw/blob/master/docs/pawpaw.svg)
 # Pawpaw
 Some parts of your applications are pure, but some parts are inherently full of side effects, eg. http-requests, websocket, local storage, etc.
 
