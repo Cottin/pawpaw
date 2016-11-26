@@ -1,122 +1,100 @@
-{always, evolve, into, isNil, join, keys, last, map, omit, prepend, range, type} = require 'ramda' #auto_require:ramda
+{all, always, any, call, contains, into, isNil, join, keys, last, map, omit, prepend, prop, range, replace, type} = require 'ramda' #auto_require:ramda
 {cc, isThenable} = require 'ramda-extras'
 
 utils = require './utils'
+logger = require './logger'
 
 isIterable = (o) -> !isNil(o) && typeof o[Symbol.iterator] == 'function'
 
+
 class Pawpaw
+	# Creates a pawpaw tree (an instance of Pawpaw) based on your treeDefinition
 	constructor: (treeDefinition) ->
 		@keys = keys treeDefinition
 		@tree = utils.prepareTree treeDefinition
-		@logLevel = 0
-		# @logAllUnderKeyCmd = [] TODO
-		@execLog = []
-		@index = 0
+		@index = -1
 
-	exec: (query, name) ->
-		context = {name, stack: [query]}
-		return @_exec query, context
+	# Executes a query towards your Pawpaw tree.
+	# Use meta to put any data you want for using in logging
+	exec: (query, meta) -> @_exec query, meta, []
 
-	execIter: (generator, args, name, caller) ->
-		context = {name, stack: [name]}
+	# The default logger. Feel free to replace this with you own logger by doing:
+	# pawpawInstance.log = () -> ...
+	log: ({query, meta, stack}) ->
+		firstIndex = cc prop('index'), last, stack
+		colorName = logger.colorNames[firstIndex % logger.colorNames.length]
+		dashes = cc join(''), map(always('-')), range(1, stack.length)
+		text = if isThenable query then 'PROMISE' else 'EXEC'
+		logger.log colorName, "#{dashes}#{text}", query
 
-		yieldObject =
-			yield: (newQuery) =>
-				newContext = evolve {stack: prepend(newQuery)}, context
-				@_exec newQuery, newContext
+	# Helper method that simplifies if you have a generator function outside of
+	# your pawpaw tree that contains one or more yield {...query...} and you want
+	# to call that function and execute all queries inside it agains your pawpaw
+	# tree.
+	execIter: (generator, args, meta) =>
+		iterable = generator.apply undefined, args
 
-		iterable = generator.apply yieldObject, args
-		if !isIterable(iterable)
-			throw new Error "generator #{generator} did not return an interable"
-
-		if utils.shouldLog context, @logLevel #, @logAllUnderKeyCmd
-			if caller
-				console.log "EXEC_ITER (#{name || ''})", caller, args
-			else 
-				console.log "EXEC_ITER (#{name || ''})", args
-
-		lastYieldResult = undefined
+		lastYieldResult = null
 		while true
 			next = iterable.next lastYieldResult
 			if next.done then return next.value
 			else
-				newQuery = next.value
-				newContext = evolve {stack: prepend(newQuery)}, context
-				lastYieldResult = @_exec newQuery, newContext
+				query = next.value
+				lastYieldResult = @exec query, meta
 
 
-	_exec: (query, context, playMode = false) ->
-		if !playMode then @execLog.push {query, context}
+	_exec: (query, meta, prevStack) ->
 		@index++
-
+		stack = prepend {query, index: @index}, prevStack
 
 		{key, cmd} = utils.extractKeyCmd @keys, query
-		if isNil key then throw new Error "No key called #{key}"
+		if isNil key
+			console.error "No key called #{key}", stack
+			throw new Error "No key called #{key}"
 
-		if utils.shouldLog context, @logLevel #, @logAllUnderKeyCmd
-			dashes = cc join(''), map(always('-')), range(1, context.stack.length)
-			console.log "#{dashes}EXEC (#{context.name || ''})", query
-
-		if playMode && utils.shouldExecuteOnPlay query, @tree
-			return
-
-		yieldObject =
-			yield: (newQuery) =>
-				newContext = evolve {stack: prepend(newQuery)}, context
-				@_exec newQuery, newContext, playMode
+		@log {query, meta, stack}
 
 		try
 			if type(cmd) == 'String'
 				args = omit [key], query
-				gen = @tree[key][cmd].call yieldObject, args
+				gen = @tree[key][cmd].call undefined, args
 			else # function as key
 				args = cmd
-				gen = @tree[key].call yieldObject, args
+				gen = @tree[key].call undefined, args
 
 		catch err
-			console.error "exec error", context
+			console.error "exec error", stack
 			throw new Error "exec error: " + err
 
 		if !isIterable gen then return gen
 
-
-		# inspiration from: https://www.promisejs.org/generators/
-		# Note that I'm cheating a bit not taking into concideration this last part:
-		# "Note how we use Promise.resolve to ensure we are always dealing with well behaved promises and we use Promise.reject along with a try/catch block to ensure that synchronous errors are always converted into asynchronous errors."
-		# For now haven't had problems but might be good to look into.
-		handle = (res) =>
-			if res.done then return res.value
-
-			newQuery = res.value
-			newContext = evolve {stack: prepend(newQuery)}, context
-
-			if isThenable newQuery
-
-				if utils.shouldLog context, @logLevel #, @logAllUnderKeyCmd
-					dashes = cc join(''), map(always('-')), range(1, newContext.stack.length)
-					console.log "#{dashes}PROMISE (#{newContext.name || ''})", newQuery
-
-				return Promise.resolve(newQuery)
-					.then (val) -> handle gen.next(val)
-					.catch (err) -> handle gen.throw(err)
-
-			result = @_exec newQuery, newContext, playMode
-			return handle gen.next(result)
-
-		return handle gen.next(undefined)
+		@_iterate(gen, meta, stack)(gen.next(undefined))
 
 
-	loadExecLog: (log, index = 0) ->
-		@index = index
-		@execLog = log
+	# inspiration from: https://www.promisejs.org/generators/
+	# Note that I'm cheating a bit not taking into concideration this last part:
+	# "Note how we use Promise.resolve to ensure we are always dealing with well behaved promises and we use Promise.reject along with a try/catch block to ensure that synchronous errors are always converted into asynchronous errors."
+	# For now haven't had problems but might be good to look into.
+	_iterate: (gen, meta, prevStack) => (res) =>
+		if res.done then return res.value
 
-	playNext: () ->
-		{query, context} = @execLog[@index]
-		@_exec query, context, true
+		query = res.value
 
-	goBack: () -> @index--
-	goForward: () -> @index++
-	goTo: (index) -> @index = index
+		if isThenable query
+			@index++
+			stack = prepend {query, index: @index}, prevStack
+			@log {query, meta, stack}
+			return Promise.resolve(query)
+				.then (val) => @_iterate(gen, meta, prevStack)(gen.next(val))
+				.catch (err) =>
+					console.error 'error in promise', stack
+					@_iterate(gen, meta, stack)(gen.throw(err))
+
+		result = @_exec query, meta, prevStack
+		return @_iterate(gen, meta, prevStack)(gen.next(result))
+
+
+
 
 module.exports = Pawpaw
+

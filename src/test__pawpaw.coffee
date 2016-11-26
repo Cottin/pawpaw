@@ -16,6 +16,19 @@ describe 'pawpaw', ->
 
 			eq 3, tree.exec {k: 'k1', a: 1, b: 2}
 
+		it 'logs with different colors', ->
+			tree = new Pawpaw
+				k:
+					k1: ({a, b}) -> a + b
+
+			eq 3, tree.exec {k: 'k1', a: 1, b: 2}
+			eq 3, tree.exec {k: 'k1', a: 1, b: 2}
+			eq 3, tree.exec {k: 'k1', a: 1, b: 2}
+			eq 3, tree.exec {k: 'k1', a: 1, b: 2}
+			eq 3, tree.exec {k: 'k1', a: 1, b: 2}
+			eq 3, tree.exec {k: 'k1', a: 1, b: 2}
+			# do a manual check in the console to see that there is a rainbow
+
 		it 'simple yield', ->
 			tree = new Pawpaw
 				k:
@@ -78,21 +91,22 @@ describe 'pawpaw', ->
 	# put all async tests last so we don't mess up the order of log messages
 	describe 'async exec', ->
 
-		it 'simple async function not using promise', (done) ->
-			tree = new Pawpaw
-				k:
-					k1: ({a, b}) -> a + b
-					k2: ({a, b}) ->
-						asyncFn = () =>
-							res = @yield {k: 'k1', a, b}
-							eq 3, res
-							done()
-						setTimeout asyncFn, 0
+		# it 'simple async function not using promise', (done) ->
+		# 	tree = new Pawpaw
+		# 		k:
+		# 			k1: ({a, b}) -> a + b
+		# 			k2: ({a, b}) ->
+		# 				asyncFn = () =>
+		# 					res = @yield {k: 'k1', a, b}
+		# 					eq 3, res
+		# 					done()
+		# 				setTimeout asyncFn, 0
 
-			tree.logLevel = 999
-			tree.exec {k: 'k2', a: 1, b: 2}
+		# 	tree.logLevel = 999
+		# 	tree.exec {k: 'k2', a: 1, b: 2}
 
 		it 'promise', (done) ->
+			# TOGO: den här blir inte rätt, loggar för många dashes --
 			tree = new Pawpaw
 				k:
 					k1: ({a, b}) -> a + b
@@ -102,7 +116,7 @@ describe 'pawpaw', ->
 							f1 = ->
 								res x + 1
 							setTimeout f1, 1
-						x__ = yield {k: 'k1', a: 1, b: x_}
+						x__ = yield {k: 'k1', a: 1, b: x_} # <---- borde bara vara en dash här
 						return x__
 
 			tree.logLevel = 999
@@ -152,6 +166,8 @@ describe 'pawpaw', ->
 			res.then (val) ->
 				eq 6, val
 				done()
+
+		# it 'nested promises', (done) -> # TODO?
 
 	describe 'async execIter', ->
 
