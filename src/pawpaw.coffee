@@ -1,4 +1,4 @@
-{all, always, any, call, contains, into, isNil, join, keys, last, map, omit, prepend, prop, range, replace, type} = require 'ramda' #auto_require:ramda
+{all, always, any, call, contains, head, into, isEmpty, isNil, join, keys, last, map, omit, prepend, prop, range, replace, type} = require 'ramda' #auto_require:ramda
 {cc, isThenable} = require 'ramda-extras'
 
 utils = require './utils'
@@ -13,6 +13,7 @@ class Pawpaw
 		@keys = keys treeDefinition
 		@tree = utils.prepareTree treeDefinition
 		@index = -1
+		@topLevelIndex = -1
 
 	# Executes a query towards your Pawpaw tree.
 	# Use meta to put any data you want for using in logging
@@ -21,7 +22,7 @@ class Pawpaw
 	# The default logger. Feel free to replace this with you own logger by doing:
 	# pawpawInstance.log = () -> ...
 	log: ({query, meta, stack}) ->
-		firstIndex = cc prop('index'), last, stack
+		firstIndex = cc prop('topLevelIndex'), last, stack
 		colorName = logger.colorNames[firstIndex % logger.colorNames.length]
 		dashes = cc join(''), map(always('-')), range(1, stack.length)
 		text = if isThenable query then 'PROMISE' else 'EXEC'
@@ -46,6 +47,9 @@ class Pawpaw
 	_exec: (query, meta, prevStack) ->
 		@index++
 		stack = prepend {query, index: @index}, prevStack
+		if isEmpty prevStack
+			@topLevelIndex++
+			head(stack).topLevelIndex = @topLevelIndex
 
 		{key, cmd} = utils.extractKeyCmd @keys, query
 		if isNil key

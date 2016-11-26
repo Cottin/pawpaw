@@ -19,7 +19,8 @@ describe 'pawpaw', ->
 		it 'logs with different colors', ->
 			tree = new Pawpaw
 				k:
-					k1: ({a, b}) -> a + b
+					k1: ({a, b}) -> yield {k: 'k2', a, b}
+					k2: ({a, b}) -> a + b
 
 			eq 3, tree.exec {k: 'k1', a: 1, b: 2}
 			eq 3, tree.exec {k: 'k1', a: 1, b: 2}

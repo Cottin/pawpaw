@@ -35,7 +35,7 @@ _logNode = (colorName, text, obj) ->
 
 _logBrowser = (colorName, text, obj) ->
 	color = _colors.browser[colorName]
-	if obj then console.log "%c #{text}", "color:#{color}", obj
-	else console.log "%c #{text}", "color:#{color}", obj
+	if obj then console.log "%c #{text}", "background:#{color}", obj
+	else console.log "%c #{text}", "background:#{color}", obj
 
 module.exports = {log, colorNames}
