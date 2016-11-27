@@ -107,7 +107,6 @@ describe 'pawpaw', ->
 		# 	tree.exec {k: 'k2', a: 1, b: 2}
 
 		it 'promise', (done) ->
-			# TOGO: den här blir inte rätt, loggar för många dashes --
 			tree = new Pawpaw
 				k:
 					k1: ({a, b}) -> a + b
@@ -117,7 +116,8 @@ describe 'pawpaw', ->
 							f1 = ->
 								res x + 1
 							setTimeout f1, 1
-						x__ = yield {k: 'k1', a: 1, b: x_} # <---- borde bara vara en dash här
+
+						x__ = yield {k: 'k1', a: 1, b: x_}
 						return x__
 
 			tree.logLevel = 999
@@ -166,6 +166,28 @@ describe 'pawpaw', ->
 			res = tree.exec({k: 'k2', a: 1, b: 2})
 			res.then (val) ->
 				eq 6, val
+				done()
+
+		it 'promise in separate function', (done) ->
+			tree = new Pawpaw
+				k:
+					k1: ({a, b}) -> a + b
+					k2: ({a}) ->
+						x = yield new Promise (res, rej) ->
+							f1 = ->
+								res a + 1
+							setTimeout f1, 10
+						return x
+
+					k3: ({a, b}) ->
+						x = yield {k: 'k1', a, b}
+						x_ = yield {k: 'k2', a: x}
+						x__ = yield {k: 'k1', a: 1, b: x_}
+						return x__
+
+			res = tree.exec({k: 'k3', a: 1, b: 2})
+			res.then (val) ->
+				eq 5, val
 				done()
 
 		# it 'nested promises', (done) -> # TODO?

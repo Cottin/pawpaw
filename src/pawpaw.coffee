@@ -95,8 +95,14 @@ class Pawpaw
 					@_iterate(gen, meta, stack)(gen.throw(err))
 
 		result = @_exec query, meta, prevStack
-		return @_iterate(gen, meta, prevStack)(gen.next(result))
+		if isThenable result
+			return Promise.resolve(result)
+				.then (val) => @_iterate(gen, meta, prevStack)(gen.next(val))
+				.catch (err) =>
+					console.error 'error in promise', stack
+					@_iterate(gen, meta, stack)(gen.throw(err))
 
+		return @_iterate(gen, meta, prevStack)(gen.next(result))
 
 
 
