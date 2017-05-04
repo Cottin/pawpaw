@@ -3,7 +3,7 @@
 # Pawpaw
 Some parts of your applications are pure, but some parts are inherently full of side effects, eg. http-requests, websocket, local storage, etc.
 
-Pawpaw lets you write the "side-effecty" parts of your application in a simple tree.
+Pawpaw lets you write the "side-effecty" parts of your application in a simple tree where all the code looks synchronous (using `yield`).
 
 ## How it works
 

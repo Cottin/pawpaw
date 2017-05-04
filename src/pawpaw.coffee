@@ -1,10 +1,12 @@
-{all, always, any, call, contains, head, into, isEmpty, isNil, join, keys, last, map, omit, prepend, prop, range, replace, type} = require 'ramda' #auto_require:ramda
+{all, always, any, call, contains, head, into, isEmpty, isNil, join, keys, last, map, match, omit, prepend, prop, range, replace, type} = require 'ramda' #auto_require:ramda
 {cc, isThenable} = require 'ramda-extras'
 
 utils = require './utils'
 logger = require './logger'
 
 isIterable = (o) -> !isNil(o) && typeof o[Symbol.iterator] == 'function'
+
+ERR = 'Pawpaw: '
 
 
 class Pawpaw
@@ -35,6 +37,11 @@ class Pawpaw
 	execIter: (generator, args, meta) =>
 		iterable = generator.apply undefined, args
 
+		if !isIterable iterable
+			console.error ERR, generator, 'applied with', args, '=', JSON.stringify(iterable)
+			throw new Error ERR + "generator did not return an iterable:", iterable
+
+
 		lastYieldResult = null
 		while true
 			next = iterable.next lastYieldResult
@@ -53,22 +60,27 @@ class Pawpaw
 
 		{key, cmd} = utils.extractKeyCmd @keys, query
 		if isNil key
-			console.error "No key called #{key}", stack
-			throw new Error "No key called #{key}"
+			console.error ERR + 'Query does not match any key in the tree', stack
+			throw new Error ERR + 'Query does not match any key in the tree'
 
 		@log {query, meta, stack}
-
+		
 		try
 			if type(cmd) == 'String'
 				args = omit [key], query
-				gen = @tree[key][cmd].call undefined, args
+				f = @tree[key][cmd]
+				if isNil(f) || type(f) != 'Function'
+					console.error ERR + "key #{key} does not have command #{cmd}", stack
+					throw new Error ERR + "key #{key} does not have command #{cmd}"
+				gen = f.call undefined, args
 			else # function as key
 				args = cmd
 				gen = @tree[key].call undefined, args
 
 		catch err
-			console.error "exec error", stack
-			throw new Error "exec error: " + err
+			console.error "Pawpaw, error in tree execution: ", JSON.stringify(stack[0].query), stack
+			# important to throw err and not new Error to get original stack trace
+			throw err
 
 		if !isIterable gen then return gen
 

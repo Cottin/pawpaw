@@ -1,11 +1,11 @@
 assert = require 'assert'
-{__, all, flip, last} = require 'ramda' #auto_require:ramda
+{__, all, any, flip, last, match, where} = require 'ramda' #auto_require:ramda
 
 Pawpaw = require './pawpaw'
 
 eq = flip assert.equal
 deepEq = flip assert.deepEqual
-throws = (f) -> assert.throws f, Error
+throws = (re, f) -> assert.throws f, re
 
 describe 'pawpaw', ->
 	describe 'exec', ->
@@ -69,8 +69,42 @@ describe 'pawpaw', ->
 				k:
 					k1: ({a, b}) -> a() + b
 
-			throws -> tree.exec({k: 'k1', a: 1, b: 2}, 'caller-provoking-error')
+			throws /TypeError: a is not a function/, ->
+				tree.exec({k: 'k1', a: 1, b: 2}, 'caller-provoking-error')
 
+		it 'key not in tree', ->
+			tree = new Pawpaw
+				k:
+					k1: ({a, b}) -> a() + b
+
+			throws /Pawpaw: Query does not match any key in the tree/, ->
+				tree.exec({m: 'k1', a: 1, b: 2}, 'caller-provoking-error')
+
+		it 'cmd not a function', ->
+			tree = new Pawpaw
+				k:
+					k1: ({a, b}) -> a() + b
+
+			throws /Pawpaw: key k does not have command k2/, ->
+				tree.exec({k: 'k2', a: 1, b: 2}, 'caller-provoking-error')
+
+
+		it 'stack trace from where error occured', ->
+			f1 = () ->
+				x = undefined
+				x.thisWillThrow()
+
+			tree = new Pawpaw
+				k:
+					k1: () -> f1()
+				m:
+					m1: () ->
+						ret = yield {k: 'k1'}
+						return ret
+
+			# tree.exec({k: 'k1', a: 1, b: 2}, 'nice stack trace')
+			throws /Cannot read property 'thisWillThrow' of undefined/, ->
+				tree.exec({k: 'k1', a: 1, b: 2}, 'nice stack trace')
 
 	describe 'execIter', ->
 		tree = new Pawpaw
@@ -78,7 +112,8 @@ describe 'pawpaw', ->
 				k1: ({a, b}) -> a + b
 				k2: ({a}) -> a * a
 		it 'should throw if not iterable', ->
-			throws -> tree.execIter -> {a: 1}
+			throws /Pawpaw: generator did not return an iterable:/, ->
+				tree.execIter -> {a: 1}
 
 		it 'should handle the result of a generator', ->
 			f = (a, b) ->
