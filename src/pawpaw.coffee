@@ -1,4 +1,4 @@
-{all, always, any, call, contains, head, into, isEmpty, isNil, join, keys, last, map, match, omit, prepend, prop, range, replace, type} = require 'ramda' #auto_require:ramda
+{all, always, any, call, contains, head, into, isEmpty, isNil, join, keys, last, map, match, omit, prepend, prop, range, replace, type, where, wrap} = require 'ramda' #auto_require:ramda
 {cc, isThenable} = require 'ramda-extras'
 
 utils = require './utils'
@@ -60,27 +60,31 @@ class Pawpaw
 
 		{key, cmd} = utils.extractKeyCmd @keys, query
 		if isNil key
-			console.error ERR + 'Query does not match any key in the tree', stack
+			console.error ERR + 'Query does not match any key in the tree.
+			 Stack:', stack
 			throw new Error ERR + 'Query does not match any key in the tree'
 
 		@log {query, meta, stack}
-		
-		try
-			if type(cmd) == 'String'
-				args = omit [key], query
-				f = @tree[key][cmd]
-				if isNil(f) || type(f) != 'Function'
-					console.error ERR + "key #{key} does not have command #{cmd}", stack
-					throw new Error ERR + "key #{key} does not have command #{cmd}"
-				gen = f.call undefined, args
-			else # function as key
-				args = cmd
-				gen = @tree[key].call undefined, args
 
-		catch err
-			console.error "Pawpaw, error in tree execution: ", JSON.stringify(stack[0].query), stack
-			# important to throw err and not new Error to get original stack trace
-			throw err
+		if type(cmd) == 'String'
+			args = omit [key], query
+			f = @tree[key][cmd]
+			if isNil(f) || type(f) != 'Function'
+				console.error ERR + "key #{key} does not have command #{cmd}.
+				 Stack:", stack
+				throw new Error ERR + "key #{key} does not have command #{cmd}"
+			gen = f.call undefined, args
+		else # function as key
+			args = cmd
+			gen = @tree[key].call undefined, args
+		
+		# NOTE: if we wrap in try catch, the stack looks the same but the file that
+		# 			gets linked in chrome dev tools is bundle.js instead of the file
+		# 			where the actual error occured. So, skip the try .. catch for now
+		# catch err
+		# 	console.error "Pawpaw, error in tree execution: ", JSON.stringify(stack[0].query), stack
+		# 	# important to throw err and not new Error to get original stack trace
+		# 	throw err
 
 		if !isIterable gen then return gen
 
