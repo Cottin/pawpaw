@@ -1,6 +1,6 @@
 {
   "name": "pawpaw",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "description": "A function tree that understands generator functions and lets you use simple javascript objects as execution queries",
   "main": "lib/pawpaw.js",
   "scripts": {
@@ -24,7 +24,7 @@
   },
   "homepage": "https://github.com/Cottin/pawpaw#readme",
   "dependencies": {
-    "ramda": "^0.22.1",
+    "ramda": "^0.23.0",
     "ramda-extras": "^0.2.5"
   },
   "devDependencies": {

@@ -1,4 +1,4 @@
-{all, always, any, call, contains, head, into, isEmpty, isNil, join, keys, last, map, match, omit, prepend, prop, range, replace, type, where, wrap} = require 'ramda' #auto_require:ramda
+{all, always, any, call, contains, head, into, isEmpty, isNil, join, keys, last, map, match, omit, prepend, prop, range, replace, test, type, where, wrap} = R = require 'ramda' #auto_require:ramda
 {cc, isThenable} = require 'ramda-extras'
 
 utils = require './utils'
@@ -69,7 +69,7 @@ class Pawpaw
 		if type(cmd) == 'String'
 			args = omit [key], query
 			f = @tree[key][cmd]
-			if isNil(f) || type(f) != 'Function'
+			if isNil(f) || ! test /^Function|GeneratorFunction$/, type(f)
 				console.error ERR + "key #{key} does not have command #{cmd}.
 				 Stack:", stack
 				throw new Error ERR + "key #{key} does not have command #{cmd}"
