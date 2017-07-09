@@ -86,7 +86,7 @@ class Pawpaw
 		# 	# important to throw err and not new Error to get original stack trace
 		# 	throw err
 
-		if !isIterable gen then return gen
+		if !isIterable(gen) || type(gen.next) != 'Function' then return gen
 
 		@_iterate(gen, meta, stack)(gen.next(undefined))
 

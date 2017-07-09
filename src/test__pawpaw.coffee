@@ -88,6 +88,13 @@ describe 'pawpaw', ->
 			throws /Pawpaw: key k does not have command k2/, ->
 				tree.exec({k: 'k2', a: 1, b: 2}, 'caller-provoking-error')
 
+		it 'no yield but return of array', ->
+			tree = new Pawpaw
+				k:
+					k1: () -> []
+
+			deepEq [], tree.exec {k: 'k1'}
+
 
 		it 'stack trace from where error occured', ->
 			f1 = () ->
