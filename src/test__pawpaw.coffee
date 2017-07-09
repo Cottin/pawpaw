@@ -6,6 +6,10 @@ Pawpaw = require './pawpaw'
 eq = flip assert.equal
 deepEq = flip assert.deepEqual
 throws = (re, f) -> assert.throws f, re
+peq = (done, x, p) ->
+	(p.then (val) ->
+		eq x, val
+	).then(done).catch(done)
 
 describe 'pawpaw', ->
 	describe 'exec', ->
@@ -164,9 +168,7 @@ describe 'pawpaw', ->
 
 			tree.logLevel = 999
 			res = tree.exec({k: 'k2', a: 1, b: 2})
-			res.then (val) ->
-				eq 5, val
-				done()
+			peq done, 5, res
 
 		it 'promise exception', (done) ->
 			tree = new Pawpaw
@@ -206,9 +208,7 @@ describe 'pawpaw', ->
 
 			tree.logLevel = 999
 			res = tree.exec({k: 'k2', a: 1, b: 2})
-			res.then (val) ->
-				eq 6, val
-				done()
+			peq done, 6, res
 
 		it 'promise in separate function', (done) ->
 			tree = new Pawpaw
@@ -228,9 +228,7 @@ describe 'pawpaw', ->
 						return x__
 
 			res = tree.exec({k: 'k3', a: 1, b: 2})
-			res.then (val) ->
-				eq 5, val
-				done()
+			peq done, 5, res
 
 		# it 'nested promises', (done) -> # TODO?
 
@@ -261,7 +259,32 @@ describe 'pawpaw', ->
 			tree.logLevel = 999
 
 			res = tree.execIter f, [1, 2], 'called-by-me2'
-			res.then (val) ->
-				eq 6, val
-				done()
+			peq done, 6, res
+
+		it 'promise waiting in iter', (done) ->
+			tree = new Pawpaw
+				k:
+					k1: ({a}) -> 
+						new Promise (res, rej) ->
+							f1 = ->
+								res a + 1
+							setTimeout f1, 10
+					k2: ({a, b}) -> a + b
+					k3: ({a}) ->
+						x = yield {k: 'k1', a: 1}
+						return x + 1
+
+			f = (a) ->
+				res = yield {k: 'k1', a}
+				res_ = yield {k: 'k2', a: res, b: 1}
+				return res_
+			# f2 and k3 are only included as references for how pawpaw behaves when
+			# waiting for yield inside of tree
+			f2 = (a) ->
+				res = yield {k: 'k3', a}
+				return res
+			tree.logLevel = 999
+
+			res = tree.execIter f, [1], 'called-by-me2'
+			peq done, 3, res
 

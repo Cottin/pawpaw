@@ -41,14 +41,13 @@ class Pawpaw
 			console.error ERR, generator, 'applied with', args, '=', JSON.stringify(iterable)
 			throw new Error ERR + "generator did not return an iterable:", iterable
 
-
-		lastYieldResult = null
-		while true
-			next = iterable.next lastYieldResult
-			if next.done then return next.value
-			else
-				query = next.value
-				lastYieldResult = @exec query, meta
+		@index++
+		query = {execIter: meta} # kind of a "fake" query made for log purposes
+		stack = prepend {query, index: @index}, []
+		@topLevelIndex++
+		head(stack).topLevelIndex = @topLevelIndex
+		@log {query, meta, stack}
+		@_iterate(iterable, meta, stack)(iterable.next(undefined))
 
 
 	_exec: (query, meta, prevStack) ->
