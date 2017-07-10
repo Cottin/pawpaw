@@ -1,5 +1,6 @@
 assert = require 'assert'
-{__, all, any, flip, last, match, where} = require 'ramda' #auto_require:ramda
+{__, all, always, any, flip, join, last, map, match, range, where} = require 'ramda' #auto_require:ramda
+{cc} = require 'ramda-extras'
 
 Pawpaw = require './pawpaw'
 
@@ -116,6 +117,41 @@ describe 'pawpaw', ->
 			# tree.exec({k: 'k1', a: 1, b: 2}, 'nice stack trace')
 			throws /Cannot read property 'thisWillThrow' of undefined/, ->
 				tree.exec({k: 'k1', a: 1, b: 2}, 'nice stack trace')
+
+	describe 'execManually', ->
+		it 'simple', ->
+			class ThirdPartyThing
+				constructor: ({pub}) ->
+					@pub = pub
+
+				sub: (key, meta) ->
+					@pub key, meta
+
+			thing = new ThirdPartyThing
+				pub: (key, meta) -> tree.execManually({k: 'pub', key}, {}, meta.stack)
+
+			tree = new Pawpaw
+				k:
+					pub: ({key, meta}) ->
+						yield {k: 'write', text: key}
+					sub: ({key}) ->
+						thing.sub key, {stack: @stack}
+
+					write: ({text}) ->
+						yield {write2: {text}}
+
+				write2: -> ({text}) ->
+					return text + '__' + @stack.length
+
+			logs = []
+			tree.log = ({query, meta, stack}) ->
+				dashes = cc join(''), map(always('-')), range(1, stack.length)
+				logs.push dashes
+
+			res = tree.exec({k: 'sub', key: 'hej'})
+			deepEq ['', '-', '--', '---'], logs
+			eq 'hej__4', res
+
 
 	describe 'execIter', ->
 		tree = new Pawpaw

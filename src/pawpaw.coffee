@@ -21,6 +21,11 @@ class Pawpaw
 	# Use meta to put any data you want for using in logging
 	exec: (query, meta) -> @_exec query, meta, []
 
+	# Use if you manually want to be in control of the stack, eg. if you're
+	# integrating callbacks from a third-party or other code with you're tree
+	# and want to keep coloring and indentations correct. See tests for example.
+	execManually: (query, meta, stack) -> @_exec query, meta, stack
+
 	# The default logger. Feel free to replace this with you own logger by doing:
 	# pawpawInstance.log = () -> ...
 	log: ({query, meta, stack}) ->
@@ -72,10 +77,10 @@ class Pawpaw
 				console.error ERR + "key #{key} does not have command #{cmd}.
 				 Stack:", stack
 				throw new Error ERR + "key #{key} does not have command #{cmd}"
-			gen = f.call undefined, args
+			gen = f.call {stack}, args
 		else # function as key
 			args = cmd
-			gen = @tree[key].call undefined, args
+			gen = @tree[key].call {stack}, args
 		
 		# NOTE: if we wrap in try catch, the stack looks the same but the file that
 		# 			gets linked in chrome dev tools is bundle.js instead of the file
