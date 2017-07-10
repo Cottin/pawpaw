@@ -32,8 +32,11 @@ class Pawpaw
 		firstIndex = cc prop('topLevelIndex'), last, stack
 		colorName = logger.colorNames[firstIndex % logger.colorNames.length]
 		dashes = cc join(''), map(always('-')), range(1, stack.length)
-		text = if isThenable query then 'PROMISE' else 'EXEC'
-		logger.log colorName, "#{dashes}#{text}", query
+		if isThenable query
+			if query.meta then logger.log colorName, "#{dashes}PROMISE", query.meta, query
+			else logger.log colorName, "#{dashes}PROMISE", query
+		else
+			logger.log colorName, "#{dashes}EXEC", query
 
 	# Helper method that simplifies if you have a generator function outside of
 	# your pawpaw tree that contains one or more yield {...query...} and you want

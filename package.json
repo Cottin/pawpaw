@@ -1,6 +1,6 @@
 {
   "name": "pawpaw",
-  "version": "0.1.13",
+  "version": "0.1.14",
   "description": "A function tree that understands generator functions and lets you use simple javascript objects as execution queries",
   "main": "lib/pawpaw.js",
   "scripts": {
