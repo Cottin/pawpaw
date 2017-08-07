@@ -73,7 +73,7 @@ class Pawpaw
 
 		@log {query, meta, stack}
 
-		if type(cmd) == 'String'
+		if ! test /^Function|GeneratorFunction$/, type(@tree[key])
 			args = omit [key], query
 			f = @tree[key][cmd]
 			if isNil(f) || ! test /^Function|GeneratorFunction$/, type(f)
