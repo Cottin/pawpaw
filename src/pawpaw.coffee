@@ -114,7 +114,7 @@ class Pawpaw
 			return Promise.resolve(query)
 				.then (val) => @_iterate(gen, meta, prevStack)(gen.next(val))
 				.catch (err) =>
-					console.error 'error in promise', stack
+					console.error ERR + 'error in promise', stack, err
 					@_iterate(gen, meta, stack)(gen.throw(err))
 
 		result = @_exec query, meta, prevStack
@@ -122,7 +122,7 @@ class Pawpaw
 			return Promise.resolve(result)
 				.then (val) => @_iterate(gen, meta, prevStack)(gen.next(val))
 				.catch (err) =>
-					console.error 'error in promise', stack
+					console.error ERR + 'error in promise', stack, err
 					@_iterate(gen, meta, stack)(gen.throw(err))
 
 		return @_iterate(gen, meta, prevStack)(gen.next(result))
